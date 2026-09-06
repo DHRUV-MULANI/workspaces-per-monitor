@@ -27,7 +27,7 @@ When you switch desktops—via the bar buttons, mouse wheel, or keyboard shortcu
 Install directly using the Ryoku CLI:
 
 ```sh
-ryoku plugin add https://github.com/TheRuckh/workspaces-per-monitor.git --bar --yes
+ryoku plugin add https://github.com/DHRUV-MULANI/workspaces-per-monitor.git --bar --yes
 ```
 
 Or from a local checkout:
