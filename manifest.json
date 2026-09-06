@@ -60,16 +60,16 @@
       {
         "key": "primaryMonitor",
         "type": "text",
-        "label": "Primary monitor (1..)",
+        "label": "Primary monitor (empty = auto-detect)",
         "group": "Monitors",
-        "default": "HDMI-A-1"
+        "default": ""
       },
       {
         "key": "secondaryMonitor",
         "type": "text",
-        "label": "Secondary monitor (A1..)",
+        "label": "Secondary monitor (empty = auto-detect)",
         "group": "Monitors",
-        "default": "eDP-1"
+        "default": ""
       }
     ]
   }

@@ -21,8 +21,8 @@ Item {
 
     readonly property var service: pluginApi ? pluginApi.mainInstance : null
     readonly property int desktopCount: service ? service.desktopCount : 5
-    readonly property string primaryMonitor: service ? service.primaryMonitor : "HDMI-A-1"
-    readonly property string secondaryMonitor: service ? service.secondaryMonitor : "eDP-1"
+    readonly property string primaryMonitor: service ? service.primaryMonitor : ""
+    readonly property string secondaryMonitor: service ? service.secondaryMonitor : ""
     readonly property string secondaryPrefix: service ? service.secondaryPrefix : "A"
     readonly property int currentDesktop: service ? service.currentDesktop : 1
 

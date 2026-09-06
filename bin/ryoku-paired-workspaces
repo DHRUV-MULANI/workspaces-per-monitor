@@ -8,8 +8,8 @@ set -euo pipefail
 PREFIX="${PREFIX:-A}"
 
 monitors_json=$(hyprctl monitors -j 2>/dev/null || echo "[]")
-DISP1="${DISP1:-$(echo "$monitors_json" | jq -r '.[0].name // "HDMI-A-1"')}"
-DISP2="${DISP2:-$(echo "$monitors_json" | jq -r '.[1].name // "eDP-1"')}"
+DISP1="${DISP1:-$(echo "$monitors_json" | jq -r '.[0].name // empty')}"
+DISP2="${DISP2:-$(echo "$monitors_json" | jq -r '.[1].name // empty')}"
 focused_mon=$(echo "$monitors_json" | jq -r '.[] | select(.focused) | .name' 2>/dev/null || echo "$DISP1")
 
 name1=$(echo "$monitors_json" | jq -r --arg m "$DISP1" '.[] | select(.name == $m) | .activeWorkspace.name // empty' 2>/dev/null || echo "")

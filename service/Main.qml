@@ -15,10 +15,15 @@ Item {
 
     readonly property int desktopCount: (settings && typeof settings.desktopCount === "number" && settings.desktopCount > 0)
         ? settings.desktopCount : 5
+    readonly property string detectedPrimary: (Hyprland.monitors && Hyprland.monitors.values && Hyprland.monitors.values.length > 0 && Hyprland.monitors.values[0])
+        ? String(Hyprland.monitors.values[0].name || "") : ""
+    readonly property string detectedSecondary: (Hyprland.monitors && Hyprland.monitors.values && Hyprland.monitors.values.length > 1 && Hyprland.monitors.values[1])
+        ? String(Hyprland.monitors.values[1].name || "") : ""
+
     readonly property string primaryMonitor: (settings && typeof settings.primaryMonitor === "string" && settings.primaryMonitor.length > 0)
-        ? settings.primaryMonitor : "HDMI-A-1"
+        ? settings.primaryMonitor : (detectedPrimary || "HDMI-A-1")
     readonly property string secondaryMonitor: (settings && typeof settings.secondaryMonitor === "string" && settings.secondaryMonitor.length > 0)
-        ? settings.secondaryMonitor : "eDP-1"
+        ? settings.secondaryMonitor : (detectedSecondary || "eDP-1")
     readonly property string secondaryPrefix: (settings && typeof settings.secondaryPrefix === "string" && settings.secondaryPrefix.length > 0)
         ? settings.secondaryPrefix : "A"
 
