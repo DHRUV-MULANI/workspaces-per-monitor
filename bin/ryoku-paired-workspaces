@@ -2,37 +2,36 @@
 set -euo pipefail
 
 # Paired dual-monitor workspace switcher for Ryoku / Hyprland
-# Display 1 (Primary, e.g. HDMI-A-1): Workspaces 1, 2, 3, 4, 5...
-# Display 2 (Secondary, e.g. eDP-1):   Workspaces 11, 12, 13, 14, 15... (labeled A1, A2...)
+# Display 1 (Primary, e.g. HDMI-A-1): Workspaces 1, 2, 3... infinite
+# Display 2 (Secondary, e.g. eDP-1):   Workspaces A1, A2, A3... infinite
 
-OFFSET="${OFFSET:-10}"
-DISP1="${DISP1:-HDMI-A-1}"
-DISP2="${DISP2:-eDP-1}"
-MAX_DESK="${MAX_DESK:-5}"
+PREFIX="${PREFIX:-A}"
 
 monitors_json=$(hyprctl monitors -j 2>/dev/null || echo "[]")
+DISP1="${DISP1:-$(echo "$monitors_json" | jq -r '.[0].name // "HDMI-A-1"')}"
+DISP2="${DISP2:-$(echo "$monitors_json" | jq -r '.[1].name // "eDP-1"')}"
 focused_mon=$(echo "$monitors_json" | jq -r '.[] | select(.focused) | .name' 2>/dev/null || echo "$DISP1")
 
-ws1=$(echo "$monitors_json" | jq -r --arg m "$DISP1" '.[] | select(.name == $m) | .activeWorkspace.id' 2>/dev/null || echo 1)
-ws2=$(echo "$monitors_json" | jq -r --arg m "$DISP2" '.[] | select(.name == $m) | .activeWorkspace.id' 2>/dev/null || echo $(( 1 + OFFSET )))
+name1=$(echo "$monitors_json" | jq -r --arg m "$DISP1" '.[] | select(.name == $m) | .activeWorkspace.name // empty' 2>/dev/null || echo "")
+name2=$(echo "$monitors_json" | jq -r --arg m "$DISP2" '.[] | select(.name == $m) | .activeWorkspace.name // empty' 2>/dev/null || echo "")
 
-if [[ "$focused_mon" == "$DISP2" ]]; then
-    if (( ws2 > OFFSET )); then
-        curr_desk=$(( ws2 - OFFSET ))
-    else
-        curr_desk=$ws2
-    fi
+desk1=$(echo "$name1" | sed -E 's/[^0-9]+//g')
+desk2=$(echo "$name2" | sed -E 's/[^0-9]+//g')
+
+if [[ "$focused_mon" == "$DISP2" && -n "$desk2" && "$desk2" -gt 0 ]]; then
+    curr_desk="$desk2"
+elif [[ -n "$desk1" && "$desk1" -gt 0 ]]; then
+    curr_desk="$desk1"
+elif [[ -n "$desk2" && "$desk2" -gt 0 ]]; then
+    curr_desk="$desk2"
 else
-    curr_desk=$ws1
+    curr_desk=1
 fi
-
-if (( curr_desk < 1 )); then curr_desk=1; fi
 
 action="${1:-next}"
 case "$action" in
     next)
         target_desk=$(( curr_desk + 1 ))
-        if (( MAX_DESK > 0 && target_desk > MAX_DESK )); then target_desk=$MAX_DESK; fi
         ;;
     prev)
         target_desk=$(( curr_desk - 1 ))
@@ -41,29 +40,59 @@ case "$action" in
     goto)
         target_desk="${2:?target desktop required}"
         if (( target_desk < 1 )); then target_desk=1; fi
-        if (( MAX_DESK > 0 && target_desk > MAX_DESK )); then target_desk=$MAX_DESK; fi
+        ;;
+    move)
+        target_desk="${2:?target desktop required}"
+        if (( target_desk < 1 )); then target_desk=1; fi
+        if [[ "$focused_mon" == "$DISP2" ]]; then
+            ws_target="name:${PREFIX}${target_desk}"
+        else
+            ws_target="$target_desk"
+        fi
+        hyprctl dispatch "hl.dsp.window.move({ workspace = \"$ws_target\" })" >/dev/null
+        exit 0
+        ;;
+    movesilent)
+        target_desk="${2:?target desktop required}"
+        if (( target_desk < 1 )); then target_desk=1; fi
+        if [[ "$focused_mon" == "$DISP2" ]]; then
+            ws_target="name:${PREFIX}${target_desk}"
+        else
+            ws_target="$target_desk"
+        fi
+        addr=$(hyprctl activewindow -j 2>/dev/null | jq -r '.address // empty')
+        if [[ -n "$addr" ]]; then
+            hyprctl dispatch "hl.dsp.window.move({ workspace = \"$ws_target\", window = \"address:$addr\", follow = false })" >/dev/null
+        else
+            hyprctl dispatch "hl.dsp.window.move({ workspace = \"$ws_target\", follow = false })" >/dev/null
+        fi
+        exit 0
         ;;
     current)
         echo "$curr_desk"
         exit 0
         ;;
     *)
-        echo "Usage: ryoku-paired-workspaces {next|prev|goto <num>|current}" >&2
+        echo "Usage: ryoku-paired-workspaces {next|prev|goto <num>|move <num>|movesilent <num>|current}" >&2
         exit 1
         ;;
 esac
 
-target_ws1=$target_desk
-target_ws2=$(( target_desk + OFFSET ))
+target_ws1="$target_desk"
+target_ws2="name:${PREFIX}${target_desk}"
 
-if [[ "$focused_mon" == "$DISP2" ]]; then
-    hyprctl dispatch "hl.dsp.focus({ monitor = \"$DISP1\" })" >/dev/null
-    hyprctl dispatch "hl.dsp.focus({ workspace = $target_ws1 })" >/dev/null
-    hyprctl dispatch "hl.dsp.focus({ monitor = \"$DISP2\" })" >/dev/null
-    hyprctl dispatch "hl.dsp.focus({ workspace = $target_ws2 })" >/dev/null
+if [[ -n "$DISP2" && "$DISP2" != "null" && "$DISP2" != "$DISP1" ]]; then
+    if [[ "$focused_mon" == "$DISP2" ]]; then
+        hyprctl dispatch "hl.dsp.focus({ monitor = \"$DISP1\" })" >/dev/null
+        hyprctl dispatch "hl.dsp.focus({ workspace = $target_ws1 })" >/dev/null
+        hyprctl dispatch "hl.dsp.focus({ monitor = \"$DISP2\" })" >/dev/null
+        hyprctl dispatch "hl.dsp.focus({ workspace = \"$target_ws2\" })" >/dev/null
+    else
+        hyprctl dispatch "hl.dsp.focus({ monitor = \"$DISP2\" })" >/dev/null
+        hyprctl dispatch "hl.dsp.focus({ workspace = \"$target_ws2\" })" >/dev/null
+        hyprctl dispatch "hl.dsp.focus({ monitor = \"$DISP1\" })" >/dev/null
+        hyprctl dispatch "hl.dsp.focus({ workspace = $target_ws1 })" >/dev/null
+    fi
 else
-    hyprctl dispatch "hl.dsp.focus({ monitor = \"$DISP2\" })" >/dev/null
-    hyprctl dispatch "hl.dsp.focus({ workspace = $target_ws2 })" >/dev/null
-    hyprctl dispatch "hl.dsp.focus({ monitor = \"$DISP1\" })" >/dev/null
     hyprctl dispatch "hl.dsp.focus({ workspace = $target_ws1 })" >/dev/null
 fi

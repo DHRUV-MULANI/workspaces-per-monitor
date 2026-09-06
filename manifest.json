@@ -1,9 +1,9 @@
 {
   "id": "workspaces-per-monitor",
   "name": "Workspaces Per Monitor",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": "TheRuckh <elruckh@gmail.com>",
-  "description": "Windows-style paired workspace switcher: Display 1 shows 1-5, Display 2 shows A1-A5, switching in sync.",
+  "description": "Windows-style paired workspace switcher: Display 1 shows 1-infinite, Display 2 shows A1-infinite, switching in sync.",
   "license": "MIT",
   "official": false,
   "hosts": [
@@ -46,7 +46,7 @@
       {
         "key": "desktopCount",
         "type": "int",
-        "label": "Virtual desktop count",
+        "label": "Minimum virtual desktops",
         "group": "Pairing",
         "default": 5
       },
@@ -58,23 +58,16 @@
         "default": "A"
       },
       {
-        "key": "offset",
-        "type": "int",
-        "label": "ID offset for secondary display",
-        "group": "Pairing",
-        "default": 10
-      },
-      {
         "key": "primaryMonitor",
         "type": "text",
-        "label": "Primary monitor (1-5)",
+        "label": "Primary monitor (1..)",
         "group": "Monitors",
         "default": "HDMI-A-1"
       },
       {
         "key": "secondaryMonitor",
         "type": "text",
-        "label": "Secondary monitor (A1-A5)",
+        "label": "Secondary monitor (A1..)",
         "group": "Monitors",
         "default": "eDP-1"
       }

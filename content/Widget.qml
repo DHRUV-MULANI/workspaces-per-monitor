@@ -21,7 +21,6 @@ Item {
 
     readonly property var service: pluginApi ? pluginApi.mainInstance : null
     readonly property int desktopCount: service ? service.desktopCount : 5
-    readonly property int offset: service ? service.offset : 10
     readonly property string primaryMonitor: service ? service.primaryMonitor : "HDMI-A-1"
     readonly property string secondaryMonitor: service ? service.secondaryMonitor : "eDP-1"
     readonly property string secondaryPrefix: service ? service.secondaryPrefix : "A"
@@ -60,27 +59,48 @@ Item {
 
     readonly property bool isSecondary: monitorName() === secondaryMonitor
 
+    // Dynamic list of desktops: at least desktopCount, extending to current/occupied desktops
     readonly property var desktopList: {
+        var minCount = (root.service && root.service.desktopCount > 0) ? root.service.desktopCount : 5;
+        var maxDesk = Math.max(minCount, root.currentDesktop);
+
+        var values = Hyprland.workspaces ? Hyprland.workspaces.values : [];
+        for (var i = 0; i < values.length; i++) {
+            var w = values[i];
+            if (!w) continue;
+            var wName = String(w.name || "");
+            var d = 0;
+            if (root.secondaryPrefix.length > 0 && wName.indexOf(root.secondaryPrefix) === 0) {
+                d = parseInt(wName.substring(root.secondaryPrefix.length), 10);
+            } else {
+                d = parseInt(wName, 10);
+                if (isNaN(d) && typeof w.id === "number" && w.id > 0) d = w.id;
+            }
+            if (!isNaN(d) && d > maxDesk) {
+                maxDesk = d;
+            }
+        }
+
         var list = [];
-        for (var i = 1; i <= desktopCount; i++) {
-            list.push(i);
+        for (var j = 1; j <= maxDesk; j++) {
+            list.push(j);
         }
         return list;
     }
 
-    function workspaceById(id) {
+    function isWorkspaceOccupied(deskIdx) {
+        var targetName = root.isSecondary ? (root.secondaryPrefix + String(deskIdx)) : String(deskIdx);
         var values = Hyprland.workspaces ? Hyprland.workspaces.values : [];
         for (var i = 0; i < values.length; i++) {
-            if (values[i] && values[i].id === id) return values[i];
+            var w = values[i];
+            if (!w) continue;
+            var match = (String(w.name || "") === targetName);
+            if (!match && !root.isSecondary && w.id === deskIdx) match = true;
+            if (match) {
+                if (w.toplevels && w.toplevels.values && w.toplevels.values.length > 0) return true;
+                if (w.lastIpcObject && typeof w.lastIpcObject.windows === "number" && w.lastIpcObject.windows > 0) return true;
+            }
         }
-        return null;
-    }
-
-    function isWorkspaceOccupied(wsId) {
-        var w = workspaceById(wsId);
-        if (!w) return false;
-        if (w.toplevels && w.toplevels.values && w.toplevels.values.length > 0) return true;
-        if (w.lastIpcObject && typeof w.lastIpcObject.windows === "number" && w.lastIpcObject.windows > 0) return true;
         return false;
     }
 
@@ -99,10 +119,9 @@ Item {
                 id: wsCell
                 required property int modelData
                 readonly property int deskIdx: modelData
-                readonly property int wsId: root.isSecondary ? (deskIdx + root.offset) : deskIdx
                 readonly property string labelText: root.isSecondary ? (root.secondaryPrefix + String(deskIdx)) : String(deskIdx)
                 readonly property bool isFocused: root.currentDesktop === deskIdx
-                readonly property bool isOccupied: root.isWorkspaceOccupied(wsId)
+                readonly property bool isOccupied: root.isWorkspaceOccupied(deskIdx)
 
                 width: (root.isSecondary ? 28 : 24) * root.s
                 height: 24 * root.s

@@ -16,7 +16,6 @@ Item {
 
     readonly property var service: pluginApi ? pluginApi.mainInstance : null
     readonly property int desktopCount: service ? service.desktopCount : 5
-    readonly property int offset: service ? service.offset : 10
     readonly property string primaryMonitor: service ? service.primaryMonitor : "HDMI-A-1"
     readonly property string secondaryMonitor: service ? service.secondaryMonitor : "eDP-1"
     readonly property string secondaryPrefix: service ? service.secondaryPrefix : "A"
@@ -95,7 +94,7 @@ Item {
         Row {
             spacing: 6 * root.s
             Repeater {
-                model: root.desktopCount
+                model: Math.max(root.desktopCount, root.currentDesktop)
 
                 delegate: Rectangle {
                     id: jumpBtn
@@ -258,10 +257,10 @@ Item {
                 }
 
                 Text {
-                    text: "Ctrl + Super + \u2192 : Next desktop (both)\nCtrl + Super + \u2190 : Prev desktop (both)"
+                    text: "Ctrl + Super + \u2192 : Next desktop (both)\nCtrl + Super + \u2190 : Prev desktop (both)\nSuper + 1..0 : Jump to paired desktop 1..10\nSuper + Alt + 1..0 : Move window to desktop"
                     color: Theme.dim
                     font.family: Theme.mono
-                    font.pixelSize: 11 * root.s
+                    font.pixelSize: 10 * root.s
                     lineHeight: 1.2
                 }
             }
