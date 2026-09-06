@@ -1,22 +1,83 @@
 {
-  "schemaVersion": 1,
-  "id": "theruckh.workspaces-per-monitor",
+  "id": "workspaces-per-monitor",
   "name": "Workspaces Per Monitor",
-  "version": "1.0.0",
-  "author": "TheRuckh",
+  "version": "1.1.0",
+  "author": "TheRuckh <elruckh@gmail.com>",
+  "description": "Windows-style paired workspace switcher: Display 1 shows 1-5, Display 2 shows A1-A5, switching in sync.",
   "license": "MIT",
-  "description": "Hyprland workspace switcher for multi-monitor setups: each bar shows only the workspaces of its own monitor.",
-  "kinds": [
-    "bar-widget"
+  "official": false,
+  "hosts": [
+    "topbarGlyph"
   ],
   "entryPoints": {
-    "barWidget": "Workspaces.qml"
+    "main": "service/Main.qml",
+    "content": "content/Widget.qml",
+    "panel": "content/Panel.qml"
   },
-  "barWidget": {
-    "displayName": "Workspaces Per Monitor",
-    "description": "Show only the workspaces belonging to each monitor's bar.",
-    "category": "Compositor",
-    "allowMultiple": false,
-    "defaultSection": "left"
+  "panel": {
+    "width": 320
+  },
+  "files": [
+    "preview.png",
+    "assets/preview-widget.png",
+    "bin/ryoku-paired-workspaces"
+  ],
+  "capabilities": {
+    "densities": [
+      "glyph",
+      "compact"
+    ]
+  },
+  "defaults": {
+    "host": "topbarGlyph",
+    "label": "Workspaces",
+    "bar": {
+      "section": "left"
+    }
+  },
+  "dependencies": {
+    "commands": [
+      "hyprctl",
+      "jq"
+    ]
+  },
+  "metadata": {
+    "settings": [
+      {
+        "key": "desktopCount",
+        "type": "int",
+        "label": "Virtual desktop count",
+        "group": "Pairing",
+        "default": 5
+      },
+      {
+        "key": "secondaryPrefix",
+        "type": "text",
+        "label": "Secondary display prefix (e.g. A)",
+        "group": "Pairing",
+        "default": "A"
+      },
+      {
+        "key": "offset",
+        "type": "int",
+        "label": "ID offset for secondary display",
+        "group": "Pairing",
+        "default": 10
+      },
+      {
+        "key": "primaryMonitor",
+        "type": "text",
+        "label": "Primary monitor (1-5)",
+        "group": "Monitors",
+        "default": "HDMI-A-1"
+      },
+      {
+        "key": "secondaryMonitor",
+        "type": "text",
+        "label": "Secondary monitor (A1-A5)",
+        "group": "Monitors",
+        "default": "eDP-1"
+      }
+    ]
   }
 }

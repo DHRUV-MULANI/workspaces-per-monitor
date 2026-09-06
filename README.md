@@ -1,87 +1,72 @@
 # Workspaces Per Monitor
 
-A Hyprland workspace switcher for the Omarchy Quattro bar that is aware of
-multiple monitors.
+A Windows-style paired dual-monitor Hyprland workspace switcher for the Ryoku shell.
 
-On a typical two-monitor Omarchy setup the default `omarchy.workspaces` widget
-shows the same numbered workspaces (1-10) on **both** screens. This plugin
-keeps each bar tidy by showing **only the workspaces that belong to that
-monitor's bar**, and it can additionally collapse a range of workspaces into a
-single compact slot.
+Display 1 (Primary, e.g. `HDMI-A-1`) displays workspaces **1, 2, 3, 4, 5...**, while Display 2 (Secondary, e.g. `eDP-1`) displays paired workspaces **A1, A2, A3, A4, A5...** (backed by integer workspace IDs 11, 12, 13, 14, 15...).
+
+When you switch desktops—via the bar buttons, mouse wheel, or `Ctrl + Super + Left / Right` keyboard shortcuts—both displays advance in sync like Windows virtual desktops, while maintaining focus on whichever screen you are actively using.
+
+## Features
+
+- **Windows-style Synchronized Desktop Switching**: Moving to Desktop 2 simultaneously switches Display 1 to `2` and Display 2 to `A2`.
+- **Conflict-Free Workspace IDs**: Hyprland uses distinct integer workspace IDs (`1..5` and `11..15`) so workspaces never collide across monitors.
+- **Dynamic Monitor Detection**: Detects which screen the bar surface is rendered on and automatically shows `1..5` on the primary monitor and `A1..A5` on the secondary monitor.
+- **Keyboard Shortcuts**: Built-in support for `Ctrl + Super + Left` and `Ctrl + Super + Right` to advance or retreat both displays synchronously.
+- **Interactive Bar Widget**:
+  - **Left-Click**: Switch both monitors to the chosen virtual desktop.
+  - **Scroll Wheel**: Cycle through virtual desktops across both monitors.
+  - **Right-Click**: Open the settings & quick jump panel.
 
 ## Install
 
+Install directly using the Ryoku CLI:
+
 ```sh
-omarchy plugin add https://github.com/<yourname>/workspaces-per-monitor.git --enable
+ryoku plugin add https://github.com/TheRuckh/workspaces-per-monitor.git --bar --yes
 ```
 
-## Usage
+Or from a local checkout:
 
-Add the widget to the bar and replace the built-in `omarchy.workspaces` entry
-in `~/.config/omarchy/shell.json`:
-
-```jsonc
-{
-  "bar": {
-    "layout": {
-      "left": [
-        { "id": "omarchy.menu" },
-        { "id": "theruckh.workspaces-per-monitor" }
-      ]
-    }
-  }
-}
+```sh
+ryoku plugin add . --bar --yes
 ```
 
-## Configure
+Once installed, the widget appears on your Ryoku bar and under **QS Bar Settings > Community**.
 
-All behavior is controlled by the widget's `settings` block in
-`shell.json`:
+## Settings
 
-```jsonc
-{
-  "id": "theruckh.workspaces-per-monitor",
-  "settings": {
-    "perMonitor": true,
-    "limit": 0,
-    "dynamicStart": 0
-  }
-}
+Settings can be changed graphically in **QS Bar Settings > Community**, or via the plugin's popout panel (right-click any workspace button on the bar):
+
+| Setting            | Type | Default    | Purpose |
+|--------------------|------|------------|---------|
+| `desktopCount`     | int  | `5`        | Number of virtual desktops (e.g. 5 gives 1–5 & A1–A5). |
+| `secondaryPrefix`  | text | `"A"`      | Prefix label for the secondary monitor (e.g. `A` for A1..A5). |
+| `offset`           | int  | `10`       | Hyprland ID offset for the secondary monitor (e.g. 10 maps Desktop 1 to WS 11). |
+| `primaryMonitor`   | text | `"HDMI-A-1"` | Output name for primary display (1, 2, 3...). |
+| `secondaryMonitor` | text | `"eDP-1"`    | Output name for secondary display (A1, A2, A3...). |
+
+## Keyboard Shortcuts
+
+Add the following to your `~/.config/hypr/user.lua`:
+
+```lua
+local paired_script = (os.getenv("HOME") or "") .. "/.config/hypr/scripts/ryoku-paired-workspaces"
+hl.bind("SUPER + CTRL + Right", hl.dsp.exec_cmd(paired_script .. " next"))
+hl.bind("SUPER + CTRL + Left",  hl.dsp.exec_cmd(paired_script .. " prev"))
 ```
 
-| Setting         | Default | Purpose |
-|-----------------|---------|---------|
-| `perMonitor`    | `true`  | Show only the workspaces of the monitor this bar is on. Set `false` to list all workspaces on every screen (built-in behavior). |
-| `limit`         | `0`     | Maximum number of workspace buttons in the fixed list. `0` means no limit. |
-| `dynamicStart`  | `0`     | Collapse workspaces with id >= this value into a single trailing button. `0` disables the collapse. |
+## Security & System Access (Ryoku Plugin Standard)
 
-### Example: compact 1-5 + a single 6-9 slot
-
-Show the first five workspaces as buttons and collapse 6-9 into one button
-that follows you to whichever of them is active:
-
-```jsonc
-{
-  "id": "theruckh.workspaces-per-monitor",
-  "settings": {
-    "perMonitor": true,
-    "dynamicStart": 6
-  }
-}
-```
-
-## How per-monitor detection works
-
-The widget has no direct window handle from the shell, so it resolves the
-monitor of the active bar surface by matching the widget's global position
-against each `Quickshell` screen's geometry. It then lists the workspaces that
-Hyprland reports on that monitor (each `HyprlandWorkspace` carries its
-`monitor`), instead of repeating the same id list on every screen.
+- **Programs executed**: `bin/ryoku-paired-workspaces` (invoking `hyprctl` and `jq`).
+- **What it reads**: Current monitor and workspace states via `hyprctl monitors -j`.
+- **What it writes**: Hyprland focus dispatches via `hyprctl dispatch hl.dsp.focus(...)` and plugin settings via `pluginApi.saveSetting`.
+- **Network access**: None.
+- **Privileged actions**: None.
 
 ## Remove
 
 ```sh
-omarchy plugin remove theruckh.workspaces-per-monitor
+ryoku plugin remove workspaces-per-monitor
 ```
 
 ## License

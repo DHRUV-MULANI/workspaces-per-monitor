@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Paired dual-monitor workspace switcher for Ryoku / Hyprland
+# Display 1 (Primary, e.g. HDMI-A-1): Workspaces 1, 2, 3, 4, 5...
+# Display 2 (Secondary, e.g. eDP-1):   Workspaces 11, 12, 13, 14, 15... (labeled A1, A2...)
+
+OFFSET="${OFFSET:-10}"
+DISP1="${DISP1:-HDMI-A-1}"
+DISP2="${DISP2:-eDP-1}"
+MAX_DESK="${MAX_DESK:-5}"
+
+monitors_json=$(hyprctl monitors -j 2>/dev/null || echo "[]")
+focused_mon=$(echo "$monitors_json" | jq -r '.[] | select(.focused) | .name' 2>/dev/null || echo "$DISP1")
+
+ws1=$(echo "$monitors_json" | jq -r --arg m "$DISP1" '.[] | select(.name == $m) | .activeWorkspace.id' 2>/dev/null || echo 1)
+ws2=$(echo "$monitors_json" | jq -r --arg m "$DISP2" '.[] | select(.name == $m) | .activeWorkspace.id' 2>/dev/null || echo $(( 1 + OFFSET )))
+
+if [[ "$focused_mon" == "$DISP2" ]]; then
+    if (( ws2 > OFFSET )); then
+        curr_desk=$(( ws2 - OFFSET ))
+    else
+        curr_desk=$ws2
+    fi
+else
+    curr_desk=$ws1
+fi
+
+if (( curr_desk < 1 )); then curr_desk=1; fi
+
+action="${1:-next}"
+case "$action" in
+    next)
+        target_desk=$(( curr_desk + 1 ))
+        if (( MAX_DESK > 0 && target_desk > MAX_DESK )); then target_desk=$MAX_DESK; fi
+        ;;
+    prev)
+        target_desk=$(( curr_desk - 1 ))
+        if (( target_desk < 1 )); then target_desk=1; fi
+        ;;
+    goto)
+        target_desk="${2:?target desktop required}"
+        if (( target_desk < 1 )); then target_desk=1; fi
+        if (( MAX_DESK > 0 && target_desk > MAX_DESK )); then target_desk=$MAX_DESK; fi
+        ;;
+    current)
+        echo "$curr_desk"
+        exit 0
+        ;;
+    *)
+        echo "Usage: ryoku-paired-workspaces {next|prev|goto <num>|current}" >&2
+        exit 1
+        ;;
+esac
+
+target_ws1=$target_desk
+target_ws2=$(( target_desk + OFFSET ))
+
+if [[ "$focused_mon" == "$DISP2" ]]; then
+    hyprctl dispatch "hl.dsp.focus({ monitor = \"$DISP1\" })" >/dev/null
+    hyprctl dispatch "hl.dsp.focus({ workspace = $target_ws1 })" >/dev/null
+    hyprctl dispatch "hl.dsp.focus({ monitor = \"$DISP2\" })" >/dev/null
+    hyprctl dispatch "hl.dsp.focus({ workspace = $target_ws2 })" >/dev/null
+else
+    hyprctl dispatch "hl.dsp.focus({ monitor = \"$DISP2\" })" >/dev/null
+    hyprctl dispatch "hl.dsp.focus({ workspace = $target_ws2 })" >/dev/null
+    hyprctl dispatch "hl.dsp.focus({ monitor = \"$DISP1\" })" >/dev/null
+    hyprctl dispatch "hl.dsp.focus({ workspace = $target_ws1 })" >/dev/null
+fi
